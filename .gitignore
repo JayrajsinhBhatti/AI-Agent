@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables (CRITICAL — never commit API keys)
+.env
+.env.local
+.env.*.local
+
+# E2B & sandbox temp files
+sandbox_temp/
+e2b_cache/
+
+# Cloned repos (agent downloads these at runtime)
+cloned_repos/
+temp_repos/
+/repos/
+
+# Coverage & test output
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+pytest_output/
+*.coveragerc
+
+# Generated reports (optional — commit if you want examples)
+reports/output/
+*.review.json
+*.review.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Jupyter (if you use notebooks for experimentation)
+.ipynb_checkpoints/
+*.ipynb
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Static analysis tool caches
+.bandit
+.pylint.d/
+.mypy_cache/
+
+# Node (if ESLint gets added later)
+node_modules/
