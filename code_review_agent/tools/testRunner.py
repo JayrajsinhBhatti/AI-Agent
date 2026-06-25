@@ -1,3 +1,5 @@
+# ❗WEEK 2
+
 """Create safe environment where repo can be executed sucessfully,
     upload repository.
     install dependencies.

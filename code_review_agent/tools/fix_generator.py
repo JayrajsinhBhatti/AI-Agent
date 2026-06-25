@@ -1,10 +1,34 @@
+# ❗WEEK 3
+
 """LLM-based code fix generation.
 
-Given detected bugs/issues and the source code, uses an LLM
-to generate targeted code fixes.
+Takes one bug from bug_detector -> generates corrected code + explanation.
 """
 
-# TODO: Implement:
-#   - generate_fix(issue: dict, source_code: str, llm) -> dict
-#   - apply_fix(file_path: str, fix: dict) -> bool
-#   - generate_all_fixes(issues: list, files: dict, llm) -> list[dict]
+from langchain.tools import tool
+from langchain_google_genai import ChatGoogleGenerativeAI
+import json
+
+llm = ChatGoogleGenerativeAI(model='gemini-2.5-flash-lite')
+
+@tool
+def fix_generator(filepath: str) -> dict:
+    """Generates fix for a detected bug."""
+    
+    prompt = """You are an expert Python developer. Fix the following bug.
+    
+    BUG DETAILS: {json.dumps(bug, indent=2)}
+    
+    Return a JSON object with:
+    - bug_id : same as input
+    - original_code: the buggy snippet
+    - fixed_code: the corrected snippet (complete function, not just the line)
+    - explanation: why this fix works
+    
+    Return only JSON object, no explanation.
+    """
+    
+    response = llm.invoke(prompt)
+    fix = json.loads(response.content)
+    
+    return fix
