@@ -23,7 +23,7 @@ from e2b import Sandbox
 def create_sandbox() -> Sandbox:
     """Create and return a new E2B Sandbox instance."""
     # Note: Requires E2B_API_KEY environment variable to be set.
-    return Sandbox()
+    return Sandbox.create()
 
 
 def upload_repo_to_sandbox(sandbox: Sandbox, repo_path: str) -> None:
@@ -88,4 +88,4 @@ def run_command_in_sandbox(sandbox: Sandbox, command: str) -> dict[str, Any]:
 
 def cleanup_sandbox(sandbox: Sandbox) -> None:
     """Close and terminate the sandbox."""
-    sandbox.close()
+    sandbox.kill()
