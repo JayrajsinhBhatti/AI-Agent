@@ -65,6 +65,15 @@ def test_factorial_negative():
         elif "CODE_REVIEW_SUMMARY_PROMPT" in prompt or "Summarize the overall findings of the code review" in prompt:
             content = "Mock Lead Architect Summary: The codebase was successfully scanned. Handled 1 critical bug in factorial function. Test validation succeeded inside sandbox environment."
             return Response(content)
+
+        elif "BOOTSTRAP_TEST_PROMPT" in prompt or "Generate a basic pytest unit test file" in prompt:
+            content = """import pytest
+from tools.vulnerable import factorial
+
+def test_factorial_smoke():
+    assert factorial(0) == 1
+"""
+            return Response(content)
             
         return Response("[]")
 

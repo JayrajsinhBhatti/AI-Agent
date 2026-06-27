@@ -75,3 +75,17 @@ Detailed Findings list:
 
 Provide a high-level summary of the codebase quality, the critical security risks, and the recommended next steps.
 """
+
+BOOTSTRAP_TEST_PROMPT = """You are a senior Python developer.
+Generate a basic pytest unit test file (a "smoke test") to bootstrap test coverage for the following Python repository files.
+
+Files available for import and testing:
+{files_info}
+
+Write a simple test file that:
+1. Imports functions/classes from these files (make sure to use correct relative or absolute import paths based on the filenames).
+2. Contains basic smoke tests (at least 1 test case per file) that call the functions with simple dummy/default arguments to verify they import and run without immediate crashes.
+3. Uses mock objects if functions require complex databases, network connections, or file system paths.
+
+Return ONLY the raw Python test code. Do not include markdown code block wrappers or comments outside the code.
+"""
