@@ -220,9 +220,45 @@ def run_tests_node(state: AgentState) -> dict[str, Any]:
 
 
 def generate_tests_node(state: AgentState) -> dict[str, Any]:
-    """Create the generated tests field for later test generation."""
+    """Identify uncovered functions and run the AI test generator loop."""
+    from tools.test_generator import generate_all_tests
 
-    return {"generated_tests": []}
+    repo_path = state.get("repo_path")
+    if not repo_path:
+        raise ValueError("Agent state must include repo_path")
+
+    test_results = state.get("test_results", {})
+    # If no test suite was detected, we cannot analyze coverage or add unit tests
+    if not test_results.get("has_tests", False) or "coverage" not in test_results:
+        print("[*] Skipped test generation: No test suite or coverage telemetry found.")
+        return {"generated_tests": []}
+
+    # Find configuration key
+    groq_key = os.getenv("GROQ_API_KEY")
+    gemini_key = os.getenv("GOOGLE_API_KEY")
+
+    llm = None
+    if groq_key and not groq_key.startswith("your_"):
+        try:
+            from langchain_groq import ChatGroq
+            llm = ChatGroq(model="llama-3.3-70b-versatile", api_key=groq_key, temperature=0.1)
+        except ImportError:
+            pass
+
+    if not llm and gemini_key and not gemini_key.startswith("your_"):
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=gemini_key, temperature=0.1)
+        except ImportError:
+            pass
+
+    if not llm:
+        print("[*] Warning: No active LLM key detected for TestGenerator. Returning empty generated_tests.")
+        return {"generated_tests": []}
+
+    files = state.get("files", {})
+    generated_tests = generate_all_tests(test_results, files, repo_path, llm)
+    return {"generated_tests": generated_tests}
 
 
 def validate_fixes_node(state: AgentState) -> dict[str, Any]:
@@ -312,19 +348,8 @@ def validate_fixes_node(state: AgentState) -> dict[str, Any]:
 
 
 def build_report_node(state: AgentState) -> dict[str, Any]:
-    """Build a basic structured report from the current workflow state."""
+    """Compile overall metrics and run the report aggregator."""
+    from report.report_builder import build_report
 
-    return {
-        "report": {
-            "repo_url": state.get("repo_url"),
-            "repo_path": state.get("repo_path"),
-            "files_reviewed": len(state.get("files", {})),
-            "chunks_reviewed": len(state.get("file_chunks", [])),
-            "static_analysis": state.get("static_analysis_results", {}),
-            "findings": state.get("llm_findings", []),
-            "suggested_fixes": state.get("suggested_fixes", []),
-            "test_results": state.get("test_results", {}),
-            "generated_tests": state.get("generated_tests", []),
-            "validation_results": state.get("validation_results", {}),
-        }
-    }
+    report_dict = build_report(state)
+    return {"report": report_dict}

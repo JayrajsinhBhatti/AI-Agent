@@ -55,7 +55,10 @@ def run_tests_in_sandbox(repo_path: str) -> dict[str, Any]:
         else:
             # Install pytest and pytest-cov manually if no requirements.txt
             print(f"[*] Installing pytest dependencies...")
-            sandbox.commands.run("pip install pytest pytest-cov", cwd="/home/user/workspace")
+            try:
+                sandbox.commands.run("pip install pytest pytest-cov", cwd="/home/user/workspace")
+            except Exception as e:
+                print(f"Warning: pytest installation failed: {e}")
             
         # Execute pytest suite with coverage configuration and PYTHONPATH set
         print(f"[*] Executing test suite in sandbox...")

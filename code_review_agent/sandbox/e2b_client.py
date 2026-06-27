@@ -61,24 +61,33 @@ def _is_ignored(path: Path, root: Path) -> bool:
 
 def install_dependencies(sandbox: Sandbox, requirements_path: str) -> None:
     """Install dependencies from a requirements file inside the sandbox."""
-    # Ensure pip is up to date
-    sandbox.commands.run("pip install --upgrade pip", cwd="/home/user/workspace")
+    try:
+        # Ensure pip is up to date
+        sandbox.commands.run("pip install --upgrade pip", cwd="/home/user/workspace")
+    except Exception as e:
+        print(f"Warning: pip upgrade failed: {e}")
     
-    # Run the installation
-    result = sandbox.commands.run(f"pip install -r {requirements_path}", cwd="/home/user/workspace")
-    if result.exit_code != 0:
-        print(f"Warning: Dependency installation may have failed. stderr: {result.stderr}")
+    try:
+        # Run the installation
+        result = sandbox.commands.run(f"pip install -r {requirements_path}", cwd="/home/user/workspace")
+        if result.exit_code != 0:
+            print(f"Warning: Dependency installation may have failed. stderr: {result.stderr}")
+    except Exception as e:
+        print(f"Warning: Dependency installation failed. stderr: {getattr(e, 'stderr', e)}")
 
 
 def run_command_in_sandbox(sandbox: Sandbox, command: str) -> dict[str, Any]:
     """Run a shell command in the sandbox and return the result."""
-    result = sandbox.commands.run(command, cwd="/home/user/workspace")
-    
-    # Extract properties safely depending on E2B SDK version
-    stdout = getattr(result, "stdout", "")
-    stderr = getattr(result, "stderr", "")
-    exit_code = getattr(result, "exit_code", 1)
-    
+    try:
+        result = sandbox.commands.run(command, cwd="/home/user/workspace")
+        stdout = getattr(result, "stdout", "")
+        stderr = getattr(result, "stderr", "")
+        exit_code = getattr(result, "exit_code", 0)
+    except Exception as e:
+        stdout = getattr(e, "stdout", "")
+        stderr = getattr(e, "stderr", "")
+        exit_code = getattr(e, "exit_code", 1)
+        
     return {
         "stdout": stdout,
         "stderr": stderr,

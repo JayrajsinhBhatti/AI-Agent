@@ -48,6 +48,23 @@ class MockLLM:
             else:
                 content = '{"fixed_code": "", "explanation": "Not mocked"}'
             return Response(content)
+
+        elif "TEST_GENERATION_PROMPT" in prompt or "Generate a comprehensive pytest unit test" in prompt:
+            content = """import pytest
+from tools.vulnerable import factorial
+
+def test_factorial_valid():
+    assert factorial(5) == 120
+
+def test_factorial_negative():
+    with pytest.raises(ValueError):
+        factorial(-1)
+"""
+            return Response(content)
+
+        elif "CODE_REVIEW_SUMMARY_PROMPT" in prompt or "Summarize the overall findings of the code review" in prompt:
+            content = "Mock Lead Architect Summary: The codebase was successfully scanned. Handled 1 critical bug in factorial function. Test validation succeeded inside sandbox environment."
+            return Response(content)
             
         return Response("[]")
 
@@ -104,6 +121,12 @@ def main():
         fixes = report.get("suggested_fixes", [])
         for fix in fixes:
             print(f"- Fix for {fix.get('symbol')} in {fix.get('file_path')}: {fix.get('explanation')}")
+            
+        print("\n--- E2B Sandbox Baseline Test Results ---")
+        test_res = report.get("test_results", {})
+        print(f"Status: {test_res.get('status')}")
+        if test_res.get("error"):
+            print(f"Error: {test_res.get('error')}")
             
         print("\n--- E2B Sandbox Fix Validation Results ---")
         validation = report.get("validation_results", {})

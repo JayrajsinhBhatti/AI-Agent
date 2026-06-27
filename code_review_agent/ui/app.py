@@ -249,9 +249,15 @@ if st.session_state.review_report:
     st.markdown("---")
     st.markdown("### 📊 Code Review Results")
     
+    # 0. Lead Architect Callout
+    if report.get("summary"):
+        st.markdown("#### 🏛️ Lead Architect Overall Review Summary")
+        st.info(report.get("summary"))
+        
     # 1. Summary Metrics
-    files_reviewed = report.get("files_reviewed", 0)
-    chunks_reviewed = report.get("chunks_reviewed", 0)
+    metrics = report.get("metrics", {})
+    files_reviewed = metrics.get("files_scanned", report.get("files_reviewed", 0))
+    chunks_reviewed = metrics.get("ast_chunks", report.get("chunks_reviewed", 0))
     
     static_results = report.get("static_analysis", {})
     bandit_issues = static_results.get("bandit", [])
@@ -259,13 +265,23 @@ if st.session_state.review_report:
     total_issues = len(bandit_issues) + len(pylint_issues)
     
     test_results = report.get("test_results", {})
-    test_status = test_results.get("status", "not_run")
-    passed = test_results.get("passed", 0)
-    total_tests = test_results.get("total", 0)
+    final_test_results = report.get("final_test_results", test_results)
     
-    coverage_pct = 0.0
-    if "coverage" in test_results and "totals" in test_results["coverage"]:
-        coverage_pct = test_results["coverage"]["totals"].get("percent_covered", 0.0)
+    test_status = final_test_results.get("status", test_results.get("status", "not_run"))
+    passed = final_test_results.get("passed", 0)
+    total_tests = final_test_results.get("total", 0)
+    
+    # Coverage calculation
+    initial_cov = metrics.get("initial_coverage_pct", 0.0)
+    final_cov = metrics.get("final_coverage_pct", 0.0)
+    
+    # Fallback to direct calculation if metrics is missing
+    if not metrics:
+        if "coverage" in test_results and "totals" in test_results["coverage"]:
+            initial_cov = test_results["coverage"]["totals"].get("percent_covered", 0.0)
+        final_cov = initial_cov
+        if "coverage" in final_test_results and "totals" in final_test_results["coverage"]:
+            final_cov = final_test_results["coverage"]["totals"].get("percent_covered", 0.0)
         
     m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric("Files Scanned", files_reviewed)
@@ -277,7 +293,9 @@ if st.session_state.review_report:
         m5.metric("Coverage", "N/A")
     elif test_status == "completed":
         m4.metric("Unit Tests", f"{passed} / {total_tests} Pass")
-        m5.metric("Coverage", f"{coverage_pct:.1f}%")
+        cov_delta = final_cov - initial_cov
+        delta_str = f"+{cov_delta:.1f}%" if cov_delta > 0.05 else None
+        m5.metric("Coverage", f"{final_cov:.1f}%", delta=delta_str)
     else:
         m4.metric("Unit Tests", "Failed / Run Error")
         m5.metric("Coverage", "Error")
@@ -329,10 +347,18 @@ if st.session_state.review_report:
         if test_status == "no_tests_found":
             st.info("No test suite detected in this repository. Add tests under a `tests/` directory to run sandboxed checks.")
         elif test_status == "completed":
-            st.markdown(f"**Sandboxed pytest Summary:** `{test_results.get('raw_summary', 'No summary generated')}`")
+            st.markdown(f"**Sandboxed pytest Summary:** `{final_test_results.get('raw_summary', 'No summary generated')}`")
             
-            st.markdown("#### 📂 Code Coverage Breakdown")
-            cov_files = test_results.get("coverage", {}).get("files", {})
+            # Coverage Improvement block
+            if metrics.get("new_tests_generated", 0) > 0 or (final_cov - initial_cov) > 0.05:
+                st.markdown("#### 📈 Code Coverage Improvement")
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Baseline Coverage", f"{initial_cov:.1f}%")
+                c2.metric("Final Coverage", f"{final_cov:.1f}%")
+                c3.metric("Coverage Boost", f"+{final_cov - initial_cov:.1f}%")
+                
+            st.markdown("#### 📂 Final Code Coverage Breakdown")
+            cov_files = final_test_results.get("coverage", {}).get("files", {})
             if not cov_files:
                 st.info("No coverage metrics found.")
             else:
@@ -347,11 +373,21 @@ if st.session_state.review_report:
                 ])
                 st.dataframe(cov_df, use_container_width=True)
                 
+            # Generated Tests block
+            generated_tests = report.get("generated_tests", [])
+            if generated_tests:
+                st.markdown("#### ✏️ AI-Generated pytest Unit Tests")
+                st.success(f"Successfully generated and sandboxed {len(generated_tests)} new unit test(s) to target uncovered functions.")
+                for test in generated_tests:
+                    with st.expander(f"📄 {test.get('file_path')} (targeting '{test.get('function_name')}' in {test.get('target_file')})"):
+                        st.markdown(f"**Verification Status:** `{test.get('status')}`")
+                        st.code(test.get("test_code"), language="python")
+
             st.markdown("#### 🖥️ Sandbox Execution Output Logs")
             with st.expander("Show Console Outputs (Stdout/Stderr)"):
-                st.code(test_results.get("stdout", "") + "\n" + test_results.get("stderr", ""), language="text")
+                st.code(final_test_results.get("stdout", "") + "\n" + final_test_results.get("stderr", ""), language="text")
         else:
-            st.error(f"Sandboxed runner encountered an error: {test_results.get('error', 'Unknown Error')}")
+            st.error(f"Sandboxed runner encountered an error: {final_test_results.get('error', 'Unknown Error')}")
             
     # -- AI Findings Tab --
     with tab_ai:
