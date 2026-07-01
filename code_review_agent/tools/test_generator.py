@@ -30,7 +30,9 @@ def identify_uncovered_functions(coverage_data: dict[str, Any], files: dict[str,
         # Match keys in coverage dict (which might be absolute path or relative)
         matching_key = None
         for k in cov_files.keys():
-            if k.endswith(rel_path) or rel_path.endswith(k):
+            k_norm = k.replace('\\', '/')
+            rel_norm = rel_path.replace('\\', '/')
+            if k_norm.endswith(rel_norm) or rel_norm.endswith(k_norm):
                 matching_key = k
                 break
                 

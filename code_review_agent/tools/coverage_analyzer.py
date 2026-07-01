@@ -7,15 +7,17 @@ import ast
 def get_uncovered_functions(file_path: str, test_dir: str) -> list[dict]:
     """Runs coverage.py and returns functions with 0% coverage."""
     
+    import sys
+    
     # Run coverage
     subprocess.run(
-        ["python", "-m", "coverage", "run", "-m", "pytest", test_dir, "-q"],
+        [sys.executable, "-m", "coverage", "run", "-m", "pytest", test_dir, "-q"],
         capture_output=True
     )
     
     # Get JSON report
     subprocess.run(
-        ["python", "-m", "coverage", "json", "-o", "coverage_report.json"],
+        [sys.executable, "-m", "coverage", "json", "-o", "coverage_report.json"],
         capture_output=True
     )
     
@@ -23,7 +25,14 @@ def get_uncovered_functions(file_path: str, test_dir: str) -> list[dict]:
         coverage_data = json.load(f)
     
     uncovered = []
-    file_data = coverage_data["files"].get(file_path, {})
+    file_data = {}
+    for k, data in coverage_data["files"].items():
+        k_norm = k.replace('\\', '/')
+        file_path_norm = file_path.replace('\\', '/')
+        if k_norm == file_path_norm or k_norm.endswith(file_path_norm) or file_path_norm.endswith(k_norm):
+            file_data = data
+            break
+            
     missing_lines = set(file_data.get("missing_lines", []))
     
     # Parse AST to find which functions fall on missing lines
